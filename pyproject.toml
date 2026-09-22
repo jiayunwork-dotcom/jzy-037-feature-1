@@ -1,0 +1,9 @@
+[project]
+name = "binary-flash-service"
+version = "0.1.0"
+description = "二元等温闪蒸相平衡核算服务（FastAPI + SQLite）"
+requires-python = ">=3.12"
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
