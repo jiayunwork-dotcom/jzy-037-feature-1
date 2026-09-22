@@ -1,7 +1,7 @@
 [project]
 name = "binary-flash-service"
-version = "0.1.0"
-description = "二元等温闪蒸相平衡核算服务（FastAPI + SQLite）"
+version = "0.2.0"
+description = "二元等温闪蒸相平衡核算服务（FastAPI + SQLite；理想液相 + Margules 非理想液相）"
 requires-python = ">=3.12"
 
 [tool.pytest.ini_options]

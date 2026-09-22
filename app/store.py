@@ -21,14 +21,15 @@ from typing import Any, Iterator
 
 _SCHEMA = """
 CREATE TABLE IF NOT EXISTS property_definitions (
-    id                TEXT PRIMARY KEY,
-    name              TEXT NOT NULL,
-    description       TEXT,
-    source            TEXT NOT NULL,
-    temperature_unit  TEXT NOT NULL,
-    pressure_unit     TEXT NOT NULL,
-    components_json   TEXT NOT NULL,
-    created_at        TEXT NOT NULL
+    id                   TEXT PRIMARY KEY,
+    name                 TEXT NOT NULL,
+    description          TEXT,
+    source               TEXT NOT NULL,
+    temperature_unit     TEXT NOT NULL,
+    pressure_unit        TEXT NOT NULL,
+    components_json      TEXT NOT NULL,
+    activity_model_json  TEXT,
+    created_at           TEXT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS jobs (
     id                       TEXT PRIMARY KEY,
@@ -45,6 +46,16 @@ CREATE TABLE IF NOT EXISTS job_points (
     PRIMARY KEY (job_id, point_index)
 );
 """
+
+# 旧版库（无 activity_model_json 列）的在线迁移：
+# 只加列、不动任何历史登记项与作业快照——作业结果随快照永存，
+# 登记项事后升级为非理想也不会回写历史作业。
+_MIGRATIONS = (
+    (
+        "activity_model_json",
+        "ALTER TABLE property_definitions ADD COLUMN activity_model_json TEXT",
+    ),
+)
 
 
 def _utcnow() -> str:
@@ -84,6 +95,13 @@ class Store:
         with self._session() as conn:
             conn.execute("PRAGMA journal_mode = WAL")
             conn.executescript(_SCHEMA)
+            existing_columns = {
+                row[1]
+                for row in conn.execute("PRAGMA table_info(property_definitions)").fetchall()
+            }
+            for column_name, migration_sql in _MIGRATIONS:
+                if column_name not in existing_columns:
+                    conn.execute(migration_sql)
 
     # ---------- 物性定义登记项 ----------
 
@@ -98,6 +116,7 @@ class Store:
             "temperature_unit": payload["temperature_unit"],
             "pressure_unit": payload["pressure_unit"],
             "components": payload["components"],
+            "activity_model": payload.get("activity_model"),
             "created_at": _utcnow(),
         }
         with self._session() as conn:
@@ -105,8 +124,8 @@ class Store:
                 """
                 INSERT INTO property_definitions
                     (id, name, description, source, temperature_unit, pressure_unit,
-                     components_json, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                     components_json, activity_model_json, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     record["id"],
@@ -116,6 +135,9 @@ class Store:
                     record["temperature_unit"],
                     record["pressure_unit"],
                     json.dumps(record["components"], ensure_ascii=False),
+                    json.dumps(record["activity_model"], ensure_ascii=False)
+                    if record["activity_model"] is not None
+                    else None,
                     record["created_at"],
                 ),
             )
@@ -123,6 +145,7 @@ class Store:
 
     @staticmethod
     def _row_to_property_definition(row: sqlite3.Row) -> dict[str, Any]:
+        activity_raw = row["activity_model_json"]
         return {
             "id": row["id"],
             "name": row["name"],
@@ -131,6 +154,7 @@ class Store:
             "temperature_unit": row["temperature_unit"],
             "pressure_unit": row["pressure_unit"],
             "components": json.loads(row["components_json"]),
+            "activity_model": json.loads(activity_raw) if activity_raw is not None else None,
             "created_at": row["created_at"],
         }
 
@@ -140,6 +164,23 @@ class Store:
                 "SELECT * FROM property_definitions WHERE id = ?", (record_id,)
             ).fetchone()
         return self._row_to_property_definition(row) if row is not None else None
+
+    def set_property_activity_model(
+        self, record_id: str, activity_model: dict[str, Any]
+    ) -> dict[str, Any] | None:
+        """把已有登记项升级为非理想：只写登记项本身，不回写任何作业快照。
+
+        作业落库时保存的是当次求解用的完整物性快照（jobs.property_snapshot_json），
+        本方法不触碰 jobs / job_points 两张表。
+        """
+        with self._session() as conn:
+            cursor = conn.execute(
+                "UPDATE property_definitions SET activity_model_json = ? WHERE id = ?",
+                (json.dumps(activity_model, ensure_ascii=False), record_id),
+            )
+            if cursor.rowcount == 0:
+                return None
+        return self.get_property_definition(record_id)
 
     def list_property_definitions(self) -> list[dict[str, Any]]:
         with self._session() as conn:

@@ -11,9 +11,10 @@ from __future__ import annotations
 import math
 from typing import Any
 
-from . import antoine
+from . import activity, antoine
 from .config import Settings
 from .errors import (
+    ActivityModelAlreadyPresent,
     AntoineCoefficientInvalid,
     AntoineCoefficientMissing,
     ComponentCountMismatch,
@@ -31,7 +32,13 @@ from .errors import (
     TooManyPoints,
 )
 from .flash import PHASE_TWO_PHASE, isothermal_flash
-from .schemas import JobCreate, OperatingPointIn, PropertyDefinitionCreate
+from .nonideal_flash import isothermal_flash_nonideal
+from .schemas import (
+    ActivityModelSpec,
+    JobCreate,
+    OperatingPointIn,
+    PropertyDefinitionCreate,
+)
 from .store import Store, new_job_id
 
 N_COMPONENTS = 2  # 本服务范围限定二元体系
@@ -82,6 +89,9 @@ def validate_property_definition_payload(payload: PropertyDefinitionCreate) -> N
                         "psat": psat,
                     },
                 )
+    # activity_model 为 None（缺省）= 理想定义，逐字保留旧行为；
+    # 非缺省时按活度系数模型自身的规则校验（缺参/非有限/全域 γ 正有限）
+    activity.validate_activity_model_spec(payload.activity_model)
 
 
 # ---------- 工况点校验 ----------
@@ -139,18 +149,47 @@ def solve_point(
     validate_operating_point(point, point_index, settings.feed_sum_tolerance)
     try:
         # K 值与饱和蒸汽压同源同序（app/antoine.py 是唯一入口）
-        k_vals = antoine.k_values(prop, point.temperature, point.pressure)
+        ideal_k_vals = antoine.k_values(prop, point.temperature, point.pressure)
         psat = antoine.saturation_pressures(prop, point.temperature)
     except DomainError as exc:
         exc.details.setdefault("point_index", point_index)
         raise
-    result = isothermal_flash(
-        list(point.feed),
-        k_vals,
-        f_tol=settings.rr_function_tolerance,
-        x_tol=settings.rr_bracket_tolerance,
-        max_iter=settings.rr_max_iterations,
-    )
+
+    if prop.activity_model is None:
+        # 理想路径：一行不动地沿用旧求解内核，保证历史结果逐项一致
+        result = isothermal_flash(
+            list(point.feed),
+            ideal_k_vals,
+            f_tol=settings.rr_function_tolerance,
+            x_tol=settings.rr_bracket_tolerance,
+            max_iter=settings.rr_max_iterations,
+        )
+        liquid_model = "ideal"
+        activity_coefficients = None
+        k_residual = None
+        k_iterations = None
+    else:
+        try:
+            result = isothermal_flash_nonideal(
+                list(point.feed),
+                psat,
+                point.pressure,
+                prop.activity_model,
+                k_tol=settings.nonideal_k_tolerance,
+                ln_k_step=settings.nonideal_ln_k_step,
+                max_iter=settings.nonideal_max_iterations,
+                f_tol=settings.rr_function_tolerance,
+                x_tol=settings.rr_bracket_tolerance,
+                rr_max_iter=settings.rr_max_iterations,
+            )
+        except DomainError as exc:
+            exc.details.setdefault("point_index", point_index)
+            raise
+        liquid_model = "margules"
+        activity_coefficients = list(result.activity_coefficients)
+        k_residual = result.nonideal_k_residual
+        k_iterations = result.nonideal_iterations
+
     v = result.vapor_fraction
     if result.phase == PHASE_TWO_PHASE:
         assert result.liquid_composition is not None
@@ -179,8 +218,12 @@ def solve_point(
         "vapor_composition": result.vapor_composition,
         "k_values": result.k_values,
         "saturation_pressures": psat,
+        "liquid_model": liquid_model,
+        "activity_coefficients": activity_coefficients,
         "bubble_sum": result.bubble_sum,
         "dew_sum": result.dew_sum,
+        "nonideal_k_residual": k_residual,
+        "nonideal_iterations": k_iterations,
         "rr_residual": result.rr_residual,
         "rr_iterations": result.rr_iterations,
         "material_balance_residual": material_balance_residual,
@@ -246,6 +289,39 @@ def submit_job(store: Store, payload: JobCreate, settings: Settings) -> dict[str
         points=results,
     )
     return get_job_detail(store, job_id)
+
+
+def upgrade_property_definition(
+    store: Store, definition_id: str, activity_model: ActivityModelSpec
+) -> dict[str, Any]:
+    """把已登记的理想物性升级为非理想（追加 Margules 参数）。
+
+    - 登记项不存在 → 404；
+    - 已经带活度系数模型 → 409（不允许覆盖/降级，避免静默改变后续作业语义）；
+    - 参数本身非法 → 422（校验与新建登记项同一入口）。
+    只更新登记项；历史作业的物性快照在 jobs 表里，本函数碰不到。
+    """
+    existing = store.get_property_definition(definition_id)
+    if existing is None:
+        raise PropertyDefinitionNotFound(
+            f"物性定义 '{definition_id}' 不存在，无法升级",
+            {"property_definition_id": definition_id},
+        )
+    if existing.get("activity_model") is not None:
+        raise ActivityModelAlreadyPresent(
+            f"物性定义 '{definition_id}' 已是带活度系数模型的非理想登记项，"
+            "不允许再次追加或覆盖参数",
+            {
+                "property_definition_id": definition_id,
+                "activity_model": existing["activity_model"],
+            },
+        )
+    activity.validate_activity_model_spec(activity_model)
+    updated = store.set_property_activity_model(
+        definition_id, activity_model.model_dump()
+    )
+    assert updated is not None  # 上面刚取过，并发删除的窗口极小；为 None 走 500
+    return updated
 
 
 def get_job_detail(store: Store, job_id: str) -> dict[str, Any]:

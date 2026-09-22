@@ -1,0 +1,1864 @@
+{
+  "steps": [
+    {
+      "name": "get-demo-definition",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/property-definitions/pd-demo-pentane-hexane",
+        "json": null
+      },
+      "capture": {},
+      "response": {
+        "name": "正戊烷/正己烷（理想体系示范）",
+        "description": "Antoine 自然对数形：ln(P_sat/kPa) = A - B / (T/K + C)。298.15 K 时 P_sat(戊烷)≈68.4 kPa、P_sat(己烷)≈20.2 kPa；等摩尔进料泡点压力≈44.3 kPa、露点压力≈31.2 kPa，便于手算核对。",
+        "temperature_unit": "K",
+        "pressure_unit": "kPa",
+        "source": "antoine",
+        "components": [
+          {
+            "name": "n-pentane",
+            "antoine": {
+              "A": 13.8183,
+              "B": 2477.07,
+              "C": -39.94,
+              "form": "ln"
+            },
+            "psat": null
+          },
+          {
+            "name": "n-hexane",
+            "antoine": {
+              "A": 13.8216,
+              "B": 2697.55,
+              "C": -48.78,
+              "form": "ln"
+            },
+            "psat": null
+          }
+        ],
+        "id": "pd-demo-pentane-hexane",
+        "created_at": "<TIMESTAMP>"
+      },
+      "status": 200
+    },
+    {
+      "name": "register-direct-psat",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/property-definitions",
+        "json": {
+          "name": "golden-direct-80-20",
+          "description": "direct_psat 理想物性（兼容性基准）",
+          "source": "direct_psat",
+          "components": [
+            {
+              "name": "light",
+              "psat": 80.0
+            },
+            {
+              "name": "heavy",
+              "psat": 20.0
+            }
+          ]
+        }
+      },
+      "capture": {
+        "direct_id": "id"
+      },
+      "response": {
+        "name": "golden-direct-80-20",
+        "description": "direct_psat 理想物性（兼容性基准）",
+        "temperature_unit": "K",
+        "pressure_unit": "kPa",
+        "source": "direct_psat",
+        "components": [
+          {
+            "name": "light",
+            "antoine": null,
+            "psat": 80.0
+          },
+          {
+            "name": "heavy",
+            "antoine": null,
+            "psat": 20.0
+          }
+        ],
+        "id": "<DYNAMIC_ID>",
+        "created_at": "<TIMESTAMP>"
+      },
+      "status": 201
+    },
+    {
+      "name": "get-registered-direct",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/property-definitions/{{direct_id}}",
+        "json": null
+      },
+      "capture": {},
+      "response": {
+        "name": "golden-direct-80-20",
+        "description": "direct_psat 理想物性（兼容性基准）",
+        "temperature_unit": "K",
+        "pressure_unit": "kPa",
+        "source": "direct_psat",
+        "components": [
+          {
+            "name": "light",
+            "antoine": null,
+            "psat": 80.0
+          },
+          {
+            "name": "heavy",
+            "antoine": null,
+            "psat": 20.0
+          }
+        ],
+        "id": "<DYNAMIC_ID>",
+        "created_at": "<TIMESTAMP>"
+      },
+      "status": 200
+    },
+    {
+      "name": "list-definitions",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/property-definitions",
+        "json": null
+      },
+      "capture": {},
+      "response": [
+        {
+          "name": "正戊烷/正己烷（理想体系示范）",
+          "description": "Antoine 自然对数形：ln(P_sat/kPa) = A - B / (T/K + C)。298.15 K 时 P_sat(戊烷)≈68.4 kPa、P_sat(己烷)≈20.2 kPa；等摩尔进料泡点压力≈44.3 kPa、露点压力≈31.2 kPa，便于手算核对。",
+          "temperature_unit": "K",
+          "pressure_unit": "kPa",
+          "source": "antoine",
+          "components": [
+            {
+              "name": "n-pentane",
+              "antoine": {
+                "A": 13.8183,
+                "B": 2477.07,
+                "C": -39.94,
+                "form": "ln"
+              },
+              "psat": null
+            },
+            {
+              "name": "n-hexane",
+              "antoine": {
+                "A": 13.8216,
+                "B": 2697.55,
+                "C": -48.78,
+                "form": "ln"
+              },
+              "psat": null
+            }
+          ],
+          "id": "pd-demo-pentane-hexane",
+          "created_at": "<TIMESTAMP>"
+        },
+        {
+          "name": "golden-direct-80-20",
+          "description": "direct_psat 理想物性（兼容性基准）",
+          "temperature_unit": "K",
+          "pressure_unit": "kPa",
+          "source": "direct_psat",
+          "components": [
+            {
+              "name": "light",
+              "antoine": null,
+              "psat": 80.0
+            },
+            {
+              "name": "heavy",
+              "antoine": null,
+              "psat": 20.0
+            }
+          ],
+          "id": "<DYNAMIC_ID>",
+          "created_at": "<TIMESTAMP>"
+        }
+      ],
+      "status": 200
+    },
+    {
+      "name": "register-antoine",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/property-definitions",
+        "json": {
+          "name": "golden-antoine",
+          "source": "antoine",
+          "temperature_unit": "K",
+          "pressure_unit": "kPa",
+          "components": [
+            {
+              "name": "c1",
+              "antoine": {
+                "A": 13.8183,
+                "B": 2477.07,
+                "C": -39.94
+              }
+            },
+            {
+              "name": "c2",
+              "antoine": {
+                "A": 13.8216,
+                "B": 2697.55,
+                "C": -48.78
+              }
+            }
+          ]
+        }
+      },
+      "capture": {
+        "antoine_id": "id"
+      },
+      "response": {
+        "name": "golden-antoine",
+        "description": null,
+        "temperature_unit": "K",
+        "pressure_unit": "kPa",
+        "source": "antoine",
+        "components": [
+          {
+            "name": "c1",
+            "antoine": {
+              "A": 13.8183,
+              "B": 2477.07,
+              "C": -39.94,
+              "form": "ln"
+            },
+            "psat": null
+          },
+          {
+            "name": "c2",
+            "antoine": {
+              "A": 13.8216,
+              "B": 2697.55,
+              "C": -48.78,
+              "form": "ln"
+            },
+            "psat": null
+          }
+        ],
+        "id": "<DYNAMIC_ID>",
+        "created_at": "<TIMESTAMP>"
+      },
+      "status": 201
+    },
+    {
+      "name": "job-demo-multi-phase",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/jobs",
+        "json": {
+          "property_definition_id": "pd-demo-pentane-hexane",
+          "points": [
+            {
+              "label": "two-phase",
+              "temperature": 298.15,
+              "pressure": 43.0,
+              "feed": [
+                0.5,
+                0.5
+              ]
+            },
+            {
+              "label": "liquid",
+              "temperature": 298.15,
+              "pressure": 50.0,
+              "feed": [
+                0.5,
+                0.5
+              ]
+            },
+            {
+              "label": "vapor",
+              "temperature": 298.15,
+              "pressure": 30.0,
+              "feed": [
+                0.5,
+                0.5
+              ]
+            },
+            {
+              "label": "lean-light",
+              "temperature": 310.0,
+              "pressure": 55.0,
+              "feed": [
+                0.3,
+                0.7
+              ]
+            },
+            {
+              "label": "rich-light",
+              "temperature": 283.15,
+              "pressure": 25.0,
+              "feed": [
+                0.7,
+                0.3
+              ]
+            },
+            {
+              "label": "near-bubble",
+              "temperature": 298.15,
+              "pressure": 44.2,
+              "feed": [
+                0.5,
+                0.5
+              ]
+            },
+            {
+              "label": "near-dew",
+              "temperature": 298.15,
+              "pressure": 31.3,
+              "feed": [
+                0.5,
+                0.5
+              ]
+            },
+            {
+              "label": "skewed",
+              "temperature": 305.0,
+              "pressure": 47.5,
+              "feed": [
+                0.15,
+                0.85
+              ]
+            }
+          ]
+        }
+      },
+      "capture": {
+        "job_demo": "id"
+      },
+      "response": {
+        "id": "<DYNAMIC_ID>",
+        "status": "completed",
+        "point_count": 8,
+        "property_definition_id": "pd-demo-pentane-hexane",
+        "created_at": "<TIMESTAMP>",
+        "property_definition": {
+          "name": "正戊烷/正己烷（理想体系示范）",
+          "description": "Antoine 自然对数形：ln(P_sat/kPa) = A - B / (T/K + C)。298.15 K 时 P_sat(戊烷)≈68.4 kPa、P_sat(己烷)≈20.2 kPa；等摩尔进料泡点压力≈44.3 kPa、露点压力≈31.2 kPa，便于手算核对。",
+          "temperature_unit": "K",
+          "pressure_unit": "kPa",
+          "source": "antoine",
+          "components": [
+            {
+              "name": "n-pentane",
+              "antoine": {
+                "A": 13.8183,
+                "B": 2477.07,
+                "C": -39.94,
+                "form": "ln"
+              },
+              "psat": null
+            },
+            {
+              "name": "n-hexane",
+              "antoine": {
+                "A": 13.8216,
+                "B": 2697.55,
+                "C": -48.78,
+                "form": "ln"
+              },
+              "psat": null
+            }
+          ],
+          "id": "pd-demo-pentane-hexane",
+          "created_at": "<TIMESTAMP>"
+        },
+        "points": [
+          {
+            "point_index": 0,
+            "label": "two-phase",
+            "input": {
+              "temperature": 298.15,
+              "pressure": 43.0,
+              "feed": [
+                0.5,
+                0.5
+              ]
+            },
+            "phase": "two_phase",
+            "vapor_fraction": 0.09453061650856398,
+            "liquid_composition": [
+              0.47357800581498644,
+              0.5264219941850199
+            ],
+            "vapor_composition": [
+              0.7530852719356921,
+              0.24691472806424708
+            ],
+            "k_values": [
+              1.5902032245769058,
+              0.46904333555916117
+            ],
+            "saturation_pressures": [
+              68.37873865680695,
+              20.16886342904393
+            ],
+            "bubble_sum": 1.0296232800680334,
+            "dew_sum": 1.3804248035520228,
+            "rr_residual": -6.716849298982197e-14,
+            "rr_iterations": 35,
+            "material_balance_residual": 5.551115123125783e-17,
+            "reason": null
+          },
+          {
+            "point_index": 1,
+            "label": "liquid",
+            "input": {
+              "temperature": 298.15,
+              "pressure": 50.0,
+              "feed": [
+                0.5,
+                0.5
+              ]
+            },
+            "phase": "liquid",
+            "vapor_fraction": 0.0,
+            "liquid_composition": [
+              0.5,
+              0.5
+            ],
+            "vapor_composition": null,
+            "k_values": [
+              1.367574773136139,
+              0.40337726858087863
+            ],
+            "saturation_pressures": [
+              68.37873865680695,
+              20.16886342904393
+            ],
+            "bubble_sum": 0.8854760208585088,
+            "dew_sum": 1.6051451204093288,
+            "rr_residual": null,
+            "rr_iterations": null,
+            "material_balance_residual": 0.0,
+            "reason": "泡点检验：Σ z_i·K_i = 0.885476 ≤ 1，工况落在泡点以下的单相液相区（汽化率取 0，非求根结果）"
+          },
+          {
+            "point_index": 2,
+            "label": "vapor",
+            "input": {
+              "temperature": 298.15,
+              "pressure": 30.0,
+              "feed": [
+                0.5,
+                0.5
+              ]
+            },
+            "phase": "vapor",
+            "vapor_fraction": 1.0,
+            "liquid_composition": null,
+            "vapor_composition": [
+              0.5,
+              0.5
+            ],
+            "k_values": [
+              2.2792912885602314,
+              0.6722954476347976
+            ],
+            "saturation_pressures": [
+              68.37873865680695,
+              20.16886342904393
+            ],
+            "bubble_sum": 1.4757933680975146,
+            "dew_sum": 0.9630870722455974,
+            "rr_residual": null,
+            "rr_iterations": null,
+            "material_balance_residual": 0.0,
+            "reason": "露点检验：Σ z_i/K_i = 0.963087 ≤ 1，工况落在露点以上的单相汽相区（汽化率取 1，非求根结果）"
+          },
+          {
+            "point_index": 3,
+            "label": "lean-light",
+            "input": {
+              "temperature": 310.0,
+              "pressure": 55.0,
+              "feed": [
+                0.3,
+                0.7
+              ]
+            },
+            "phase": "liquid",
+            "vapor_fraction": 0.0,
+            "liquid_composition": [
+              0.3,
+              0.7
+            ],
+            "vapor_composition": null,
+            "k_values": [
+              1.8939635871738774,
+              0.5990146224320253
+            ],
+            "saturation_pressures": [
+              104.16799729456325,
+              32.94580423376139
+            ],
+            "bubble_sum": 0.987499311854581,
+            "dew_sum": 1.3269838070591218,
+            "rr_residual": null,
+            "rr_iterations": null,
+            "material_balance_residual": 0.0,
+            "reason": "泡点检验：Σ z_i·K_i = 0.987499 ≤ 1，工况落在泡点以下的单相液相区（汽化率取 0，非求根结果）"
+          },
+          {
+            "point_index": 4,
+            "label": "rich-light",
+            "input": {
+              "temperature": 283.15,
+              "pressure": 25.0,
+              "feed": [
+                0.7,
+                0.3
+              ]
+            },
+            "phase": "two_phase",
+            "vapor_fraction": 0.589859605559468,
+            "liquid_composition": [
+              0.5372301012716754,
+              0.4627698987283291
+            ],
+            "vapor_composition": [
+              0.8131769489523895,
+              0.1868230510476074
+            ],
+            "k_values": [
+              1.5136474055111977,
+              0.40370614329278715
+            ],
+            "saturation_pressures": [
+              37.841185137779945,
+              10.092653582319679
+            ],
+            "bubble_sum": 1.1806650268456744,
+            "dew_sum": 1.205573864253172,
+            "rr_residual": -7.66053886991358e-15,
+            "rr_iterations": 38,
+            "material_balance_residual": 0.0,
+            "reason": null
+          },
+          {
+            "point_index": 5,
+            "label": "near-bubble",
+            "input": {
+              "temperature": 298.15,
+              "pressure": 44.2,
+              "feed": [
+                0.5,
+                0.5
+              ]
+            },
+            "phase": "two_phase",
+            "vapor_fraction": 0.005614056972262915,
+            "liquid_composition": [
+              0.49846917166785276,
+              0.5015308283321425
+            ],
+            "vapor_composition": [
+              0.7711469053835099,
+              0.22885309461733616
+            ],
+            "k_values": [
+              1.5470302863530982,
+              0.4563091273539351
+            ],
+            "saturation_pressures": [
+              68.37873865680695,
+              20.16886342904393
+            ],
+            "bubble_sum": 1.0016697068535168,
+            "dew_sum": 1.4189482864418468,
+            "rr_residual": 8.508194149214887e-13,
+            "rr_iterations": 37,
+            "material_balance_residual": 0.0,
+            "reason": null
+          },
+          {
+            "point_index": 6,
+            "label": "near-dew",
+            "input": {
+              "temperature": 298.15,
+              "pressure": 31.3,
+              "feed": [
+                0.5,
+                0.5
+              ]
+            },
+            "phase": "two_phase",
+            "vapor_fraction": 0.9838912719569635,
+            "liquid_composition": [
+              0.23088913875781897,
+              0.7691108612419855
+            ],
+            "vapor_composition": [
+              0.504406008875915,
+              0.49559399112408825
+            ],
+            "k_values": [
+              2.1846242382366436,
+              0.6443726335157806
+            ],
+            "saturation_pressures": [
+              68.37873865680695,
+              20.16886342904393
+            ],
+            "bubble_sum": 1.414498435876212,
+            "dew_sum": 1.00482084537624,
+            "rr_residual": 1.9878543255913428e-13,
+            "rr_iterations": 35,
+            "material_balance_residual": 0.0,
+            "reason": null
+          },
+          {
+            "point_index": 7,
+            "label": "skewed",
+            "input": {
+              "temperature": 305.0,
+              "pressure": 47.5,
+              "feed": [
+                0.15,
+                0.85
+              ]
+            },
+            "phase": "liquid",
+            "vapor_fraction": 0.0,
+            "liquid_composition": [
+              0.15,
+              0.85
+            ],
+            "vapor_composition": null,
+            "k_values": [
+              1.8445811776900978,
+              0.5670052717322508
+            ],
+            "saturation_pressures": [
+              87.61760594027965,
+              26.93275040728191
+            ],
+            "bubble_sum": 0.7586416576259278,
+            "dew_sum": 1.5804235005369822,
+            "rr_residual": null,
+            "rr_iterations": null,
+            "material_balance_residual": 0.0,
+            "reason": "泡点检验：Σ z_i·K_i = 0.758642 ≤ 1，工况落在泡点以下的单相液相区（汽化率取 0，非求根结果）"
+          }
+        ]
+      },
+      "status": 201
+    },
+    {
+      "name": "job-inline-direct",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/jobs",
+        "json": {
+          "property_definition": {
+            "name": "golden-inline",
+            "source": "direct_psat",
+            "components": [
+              {
+                "name": "a",
+                "psat": 80.0
+              },
+              {
+                "name": "b",
+                "psat": 20.0
+              }
+            ]
+          },
+          "points": [
+            {
+              "temperature": 300.0,
+              "pressure": 40.0,
+              "feed": [
+                0.5,
+                0.5
+              ]
+            },
+            {
+              "temperature": 300.0,
+              "pressure": 100.0,
+              "feed": [
+                0.5,
+                0.5
+              ]
+            },
+            {
+              "temperature": 300.0,
+              "pressure": 15.0,
+              "feed": [
+                0.5,
+                0.5
+              ]
+            },
+            {
+              "temperature": 350.0,
+              "pressure": 33.0,
+              "feed": [
+                0.25,
+                0.75
+              ]
+            }
+          ]
+        }
+      },
+      "capture": {
+        "job_inline": "id"
+      },
+      "response": {
+        "id": "<DYNAMIC_ID>",
+        "status": "completed",
+        "point_count": 4,
+        "property_definition_id": null,
+        "created_at": "<TIMESTAMP>",
+        "property_definition": {
+          "name": "golden-inline",
+          "description": null,
+          "temperature_unit": "K",
+          "pressure_unit": "kPa",
+          "source": "direct_psat",
+          "components": [
+            {
+              "name": "a",
+              "antoine": null,
+              "psat": 80.0
+            },
+            {
+              "name": "b",
+              "antoine": null,
+              "psat": 20.0
+            }
+          ],
+          "id": null,
+          "created_at": null
+        },
+        "points": [
+          {
+            "point_index": 0,
+            "label": null,
+            "input": {
+              "temperature": 300.0,
+              "pressure": 40.0,
+              "feed": [
+                0.5,
+                0.5
+              ]
+            },
+            "phase": "two_phase",
+            "vapor_fraction": 0.5,
+            "liquid_composition": [
+              0.3333333333333333,
+              0.6666666666666666
+            ],
+            "vapor_composition": [
+              0.6666666666666666,
+              0.3333333333333333
+            ],
+            "k_values": [
+              2.0,
+              0.5
+            ],
+            "saturation_pressures": [
+              80.0,
+              20.0
+            ],
+            "bubble_sum": 1.25,
+            "dew_sum": 1.25,
+            "rr_residual": 0.0,
+            "rr_iterations": 1,
+            "material_balance_residual": 0.0,
+            "reason": null
+          },
+          {
+            "point_index": 1,
+            "label": null,
+            "input": {
+              "temperature": 300.0,
+              "pressure": 100.0,
+              "feed": [
+                0.5,
+                0.5
+              ]
+            },
+            "phase": "liquid",
+            "vapor_fraction": 0.0,
+            "liquid_composition": [
+              0.5,
+              0.5
+            ],
+            "vapor_composition": null,
+            "k_values": [
+              0.8,
+              0.2
+            ],
+            "saturation_pressures": [
+              80.0,
+              20.0
+            ],
+            "bubble_sum": 0.5,
+            "dew_sum": 3.125,
+            "rr_residual": null,
+            "rr_iterations": null,
+            "material_balance_residual": 0.0,
+            "reason": "泡点检验：Σ z_i·K_i = 0.5 ≤ 1，工况落在泡点以下的单相液相区（汽化率取 0，非求根结果）；所有 K_i < 1，各组分均倾向液相"
+          },
+          {
+            "point_index": 2,
+            "label": null,
+            "input": {
+              "temperature": 300.0,
+              "pressure": 15.0,
+              "feed": [
+                0.5,
+                0.5
+              ]
+            },
+            "phase": "vapor",
+            "vapor_fraction": 1.0,
+            "liquid_composition": null,
+            "vapor_composition": [
+              0.5,
+              0.5
+            ],
+            "k_values": [
+              5.333333333333333,
+              1.3333333333333333
+            ],
+            "saturation_pressures": [
+              80.0,
+              20.0
+            ],
+            "bubble_sum": 3.333333333333333,
+            "dew_sum": 0.46875,
+            "rr_residual": null,
+            "rr_iterations": null,
+            "material_balance_residual": 0.0,
+            "reason": "露点检验：Σ z_i/K_i = 0.46875 ≤ 1，工况落在露点以上的单相汽相区（汽化率取 1，非求根结果）；所有 K_i > 1，各组分均倾向汽相"
+          },
+          {
+            "point_index": 3,
+            "label": null,
+            "input": {
+              "temperature": 350.0,
+              "pressure": 33.0,
+              "feed": [
+                0.25,
+                0.75
+              ]
+            },
+            "phase": "two_phase",
+            "vapor_fraction": 0.10801963993435493,
+            "liquid_composition": [
+              0.2166666666667144,
+              0.7833333333332758
+            ],
+            "vapor_composition": [
+              0.525252525252641,
+              0.4747474747474399
+            ],
+            "k_values": [
+              2.4242424242424243,
+              0.6060606060606061
+            ],
+            "saturation_pressures": [
+              80.0,
+              20.0
+            ],
+            "bubble_sum": 1.0606060606060606,
+            "dew_sum": 1.340625,
+            "rr_residual": 9.076073226310655e-14,
+            "rr_iterations": 37,
+            "material_balance_residual": 1.1102230246251565e-16,
+            "reason": null
+          }
+        ]
+      },
+      "status": 201
+    },
+    {
+      "name": "job-registered-direct",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/jobs",
+        "json": {
+          "property_definition_id": "{{direct_id}}",
+          "points": [
+            {
+              "temperature": 300.0,
+              "pressure": 40.0,
+              "feed": [
+                0.5,
+                0.5
+              ]
+            },
+            {
+              "temperature": 310.0,
+              "pressure": 45.0,
+              "feed": [
+                0.6,
+                0.4
+              ]
+            }
+          ]
+        }
+      },
+      "capture": {
+        "job_direct": "id"
+      },
+      "response": {
+        "id": "<DYNAMIC_ID>",
+        "status": "completed",
+        "point_count": 2,
+        "property_definition_id": "<DYNAMIC_ID>",
+        "created_at": "<TIMESTAMP>",
+        "property_definition": {
+          "name": "golden-direct-80-20",
+          "description": "direct_psat 理想物性（兼容性基准）",
+          "temperature_unit": "K",
+          "pressure_unit": "kPa",
+          "source": "direct_psat",
+          "components": [
+            {
+              "name": "light",
+              "antoine": null,
+              "psat": 80.0
+            },
+            {
+              "name": "heavy",
+              "antoine": null,
+              "psat": 20.0
+            }
+          ],
+          "id": "<DYNAMIC_ID>",
+          "created_at": "<TIMESTAMP>"
+        },
+        "points": [
+          {
+            "point_index": 0,
+            "label": null,
+            "input": {
+              "temperature": 300.0,
+              "pressure": 40.0,
+              "feed": [
+                0.5,
+                0.5
+              ]
+            },
+            "phase": "two_phase",
+            "vapor_fraction": 0.5,
+            "liquid_composition": [
+              0.3333333333333333,
+              0.6666666666666666
+            ],
+            "vapor_composition": [
+              0.6666666666666666,
+              0.3333333333333333
+            ],
+            "k_values": [
+              2.0,
+              0.5
+            ],
+            "saturation_pressures": [
+              80.0,
+              20.0
+            ],
+            "bubble_sum": 1.25,
+            "dew_sum": 1.25,
+            "rr_residual": 0.0,
+            "rr_iterations": 1,
+            "material_balance_residual": 0.0,
+            "reason": null
+          },
+          {
+            "point_index": 1,
+            "label": null,
+            "input": {
+              "temperature": 310.0,
+              "pressure": 45.0,
+              "feed": [
+                0.6,
+                0.4
+              ]
+            },
+            "phase": "two_phase",
+            "vapor_fraction": 0.5657142857162398,
+            "liquid_composition": [
+              0.41666666666622687,
+              0.5833333333342569
+            ],
+            "vapor_composition": [
+              0.7407407407399589,
+              0.2592592592596697
+            ],
+            "k_values": [
+              1.7777777777777777,
+              0.4444444444444444
+            ],
+            "saturation_pressures": [
+              80.0,
+              20.0
+            ],
+            "bubble_sum": 1.2444444444444445,
+            "dew_sum": 1.2375000000000003,
+            "rr_residual": -8.552047958687581e-13,
+            "rr_iterations": 37,
+            "material_balance_residual": 5.551115123125783e-17,
+            "reason": null
+          }
+        ]
+      },
+      "status": 201
+    },
+    {
+      "name": "job-registered-antoine",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/jobs",
+        "json": {
+          "property_definition_id": "{{antoine_id}}",
+          "points": [
+            {
+              "temperature": 298.15,
+              "pressure": 43.0,
+              "feed": [
+                0.5,
+                0.5
+              ]
+            },
+            {
+              "temperature": 320.0,
+              "pressure": 70.0,
+              "feed": [
+                0.4,
+                0.6
+              ]
+            }
+          ]
+        }
+      },
+      "capture": {},
+      "response": {
+        "id": "<DYNAMIC_ID>",
+        "status": "completed",
+        "point_count": 2,
+        "property_definition_id": "<DYNAMIC_ID>",
+        "created_at": "<TIMESTAMP>",
+        "property_definition": {
+          "name": "golden-antoine",
+          "description": null,
+          "temperature_unit": "K",
+          "pressure_unit": "kPa",
+          "source": "antoine",
+          "components": [
+            {
+              "name": "c1",
+              "antoine": {
+                "A": 13.8183,
+                "B": 2477.07,
+                "C": -39.94,
+                "form": "ln"
+              },
+              "psat": null
+            },
+            {
+              "name": "c2",
+              "antoine": {
+                "A": 13.8216,
+                "B": 2697.55,
+                "C": -48.78,
+                "form": "ln"
+              },
+              "psat": null
+            }
+          ],
+          "id": "<DYNAMIC_ID>",
+          "created_at": "<TIMESTAMP>"
+        },
+        "points": [
+          {
+            "point_index": 0,
+            "label": null,
+            "input": {
+              "temperature": 298.15,
+              "pressure": 43.0,
+              "feed": [
+                0.5,
+                0.5
+              ]
+            },
+            "phase": "two_phase",
+            "vapor_fraction": 0.09453061650856398,
+            "liquid_composition": [
+              0.47357800581498644,
+              0.5264219941850199
+            ],
+            "vapor_composition": [
+              0.7530852719356921,
+              0.24691472806424708
+            ],
+            "k_values": [
+              1.5902032245769058,
+              0.46904333555916117
+            ],
+            "saturation_pressures": [
+              68.37873865680695,
+              20.16886342904393
+            ],
+            "bubble_sum": 1.0296232800680334,
+            "dew_sum": 1.3804248035520228,
+            "rr_residual": -6.716849298982197e-14,
+            "rr_iterations": 35,
+            "material_balance_residual": 5.551115123125783e-17,
+            "reason": null
+          },
+          {
+            "point_index": 1,
+            "label": null,
+            "input": {
+              "temperature": 320.0,
+              "pressure": 70.0,
+              "feed": [
+                0.4,
+                0.6
+              ]
+            },
+            "phase": "two_phase",
+            "vapor_fraction": 0.7216325794433942,
+            "liquid_composition": [
+              0.22619615172707735,
+              0.7738038482726565
+            ],
+            "vapor_composition": [
+              0.46704426920949504,
+              0.5329557307906077
+            ],
+            "k_values": [
+              2.0647754864239203,
+              0.6887478422087352
+            ],
+            "saturation_pressures": [
+              144.53428404967443,
+              48.212348954611464
+            ],
+            "bubble_sum": 1.2391588998948093,
+            "dew_sum": 1.064871767876325,
+            "rr_residual": 3.6884384435609263e-13,
+            "rr_iterations": 36,
+            "material_balance_residual": 5.551115123125783e-17,
+            "reason": null
+          }
+        ]
+      },
+      "status": 201
+    },
+    {
+      "name": "get-job-demo",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/jobs/{{job_demo}}",
+        "json": null
+      },
+      "capture": {},
+      "response": {
+        "id": "<DYNAMIC_ID>",
+        "status": "completed",
+        "point_count": 8,
+        "property_definition_id": "pd-demo-pentane-hexane",
+        "created_at": "<TIMESTAMP>",
+        "property_definition": {
+          "name": "正戊烷/正己烷（理想体系示范）",
+          "description": "Antoine 自然对数形：ln(P_sat/kPa) = A - B / (T/K + C)。298.15 K 时 P_sat(戊烷)≈68.4 kPa、P_sat(己烷)≈20.2 kPa；等摩尔进料泡点压力≈44.3 kPa、露点压力≈31.2 kPa，便于手算核对。",
+          "temperature_unit": "K",
+          "pressure_unit": "kPa",
+          "source": "antoine",
+          "components": [
+            {
+              "name": "n-pentane",
+              "antoine": {
+                "A": 13.8183,
+                "B": 2477.07,
+                "C": -39.94,
+                "form": "ln"
+              },
+              "psat": null
+            },
+            {
+              "name": "n-hexane",
+              "antoine": {
+                "A": 13.8216,
+                "B": 2697.55,
+                "C": -48.78,
+                "form": "ln"
+              },
+              "psat": null
+            }
+          ],
+          "id": "pd-demo-pentane-hexane",
+          "created_at": "<TIMESTAMP>"
+        },
+        "points": [
+          {
+            "point_index": 0,
+            "label": "two-phase",
+            "input": {
+              "temperature": 298.15,
+              "pressure": 43.0,
+              "feed": [
+                0.5,
+                0.5
+              ]
+            },
+            "phase": "two_phase",
+            "vapor_fraction": 0.09453061650856398,
+            "liquid_composition": [
+              0.47357800581498644,
+              0.5264219941850199
+            ],
+            "vapor_composition": [
+              0.7530852719356921,
+              0.24691472806424708
+            ],
+            "k_values": [
+              1.5902032245769058,
+              0.46904333555916117
+            ],
+            "saturation_pressures": [
+              68.37873865680695,
+              20.16886342904393
+            ],
+            "bubble_sum": 1.0296232800680334,
+            "dew_sum": 1.3804248035520228,
+            "rr_residual": -6.716849298982197e-14,
+            "rr_iterations": 35,
+            "material_balance_residual": 5.551115123125783e-17,
+            "reason": null
+          },
+          {
+            "point_index": 1,
+            "label": "liquid",
+            "input": {
+              "temperature": 298.15,
+              "pressure": 50.0,
+              "feed": [
+                0.5,
+                0.5
+              ]
+            },
+            "phase": "liquid",
+            "vapor_fraction": 0.0,
+            "liquid_composition": [
+              0.5,
+              0.5
+            ],
+            "vapor_composition": null,
+            "k_values": [
+              1.367574773136139,
+              0.40337726858087863
+            ],
+            "saturation_pressures": [
+              68.37873865680695,
+              20.16886342904393
+            ],
+            "bubble_sum": 0.8854760208585088,
+            "dew_sum": 1.6051451204093288,
+            "rr_residual": null,
+            "rr_iterations": null,
+            "material_balance_residual": 0.0,
+            "reason": "泡点检验：Σ z_i·K_i = 0.885476 ≤ 1，工况落在泡点以下的单相液相区（汽化率取 0，非求根结果）"
+          },
+          {
+            "point_index": 2,
+            "label": "vapor",
+            "input": {
+              "temperature": 298.15,
+              "pressure": 30.0,
+              "feed": [
+                0.5,
+                0.5
+              ]
+            },
+            "phase": "vapor",
+            "vapor_fraction": 1.0,
+            "liquid_composition": null,
+            "vapor_composition": [
+              0.5,
+              0.5
+            ],
+            "k_values": [
+              2.2792912885602314,
+              0.6722954476347976
+            ],
+            "saturation_pressures": [
+              68.37873865680695,
+              20.16886342904393
+            ],
+            "bubble_sum": 1.4757933680975146,
+            "dew_sum": 0.9630870722455974,
+            "rr_residual": null,
+            "rr_iterations": null,
+            "material_balance_residual": 0.0,
+            "reason": "露点检验：Σ z_i/K_i = 0.963087 ≤ 1，工况落在露点以上的单相汽相区（汽化率取 1，非求根结果）"
+          },
+          {
+            "point_index": 3,
+            "label": "lean-light",
+            "input": {
+              "temperature": 310.0,
+              "pressure": 55.0,
+              "feed": [
+                0.3,
+                0.7
+              ]
+            },
+            "phase": "liquid",
+            "vapor_fraction": 0.0,
+            "liquid_composition": [
+              0.3,
+              0.7
+            ],
+            "vapor_composition": null,
+            "k_values": [
+              1.8939635871738774,
+              0.5990146224320253
+            ],
+            "saturation_pressures": [
+              104.16799729456325,
+              32.94580423376139
+            ],
+            "bubble_sum": 0.987499311854581,
+            "dew_sum": 1.3269838070591218,
+            "rr_residual": null,
+            "rr_iterations": null,
+            "material_balance_residual": 0.0,
+            "reason": "泡点检验：Σ z_i·K_i = 0.987499 ≤ 1，工况落在泡点以下的单相液相区（汽化率取 0，非求根结果）"
+          },
+          {
+            "point_index": 4,
+            "label": "rich-light",
+            "input": {
+              "temperature": 283.15,
+              "pressure": 25.0,
+              "feed": [
+                0.7,
+                0.3
+              ]
+            },
+            "phase": "two_phase",
+            "vapor_fraction": 0.589859605559468,
+            "liquid_composition": [
+              0.5372301012716754,
+              0.4627698987283291
+            ],
+            "vapor_composition": [
+              0.8131769489523895,
+              0.1868230510476074
+            ],
+            "k_values": [
+              1.5136474055111977,
+              0.40370614329278715
+            ],
+            "saturation_pressures": [
+              37.841185137779945,
+              10.092653582319679
+            ],
+            "bubble_sum": 1.1806650268456744,
+            "dew_sum": 1.205573864253172,
+            "rr_residual": -7.66053886991358e-15,
+            "rr_iterations": 38,
+            "material_balance_residual": 0.0,
+            "reason": null
+          },
+          {
+            "point_index": 5,
+            "label": "near-bubble",
+            "input": {
+              "temperature": 298.15,
+              "pressure": 44.2,
+              "feed": [
+                0.5,
+                0.5
+              ]
+            },
+            "phase": "two_phase",
+            "vapor_fraction": 0.005614056972262915,
+            "liquid_composition": [
+              0.49846917166785276,
+              0.5015308283321425
+            ],
+            "vapor_composition": [
+              0.7711469053835099,
+              0.22885309461733616
+            ],
+            "k_values": [
+              1.5470302863530982,
+              0.4563091273539351
+            ],
+            "saturation_pressures": [
+              68.37873865680695,
+              20.16886342904393
+            ],
+            "bubble_sum": 1.0016697068535168,
+            "dew_sum": 1.4189482864418468,
+            "rr_residual": 8.508194149214887e-13,
+            "rr_iterations": 37,
+            "material_balance_residual": 0.0,
+            "reason": null
+          },
+          {
+            "point_index": 6,
+            "label": "near-dew",
+            "input": {
+              "temperature": 298.15,
+              "pressure": 31.3,
+              "feed": [
+                0.5,
+                0.5
+              ]
+            },
+            "phase": "two_phase",
+            "vapor_fraction": 0.9838912719569635,
+            "liquid_composition": [
+              0.23088913875781897,
+              0.7691108612419855
+            ],
+            "vapor_composition": [
+              0.504406008875915,
+              0.49559399112408825
+            ],
+            "k_values": [
+              2.1846242382366436,
+              0.6443726335157806
+            ],
+            "saturation_pressures": [
+              68.37873865680695,
+              20.16886342904393
+            ],
+            "bubble_sum": 1.414498435876212,
+            "dew_sum": 1.00482084537624,
+            "rr_residual": 1.9878543255913428e-13,
+            "rr_iterations": 35,
+            "material_balance_residual": 0.0,
+            "reason": null
+          },
+          {
+            "point_index": 7,
+            "label": "skewed",
+            "input": {
+              "temperature": 305.0,
+              "pressure": 47.5,
+              "feed": [
+                0.15,
+                0.85
+              ]
+            },
+            "phase": "liquid",
+            "vapor_fraction": 0.0,
+            "liquid_composition": [
+              0.15,
+              0.85
+            ],
+            "vapor_composition": null,
+            "k_values": [
+              1.8445811776900978,
+              0.5670052717322508
+            ],
+            "saturation_pressures": [
+              87.61760594027965,
+              26.93275040728191
+            ],
+            "bubble_sum": 0.7586416576259278,
+            "dew_sum": 1.5804235005369822,
+            "rr_residual": null,
+            "rr_iterations": null,
+            "material_balance_residual": 0.0,
+            "reason": "泡点检验：Σ z_i·K_i = 0.758642 ≤ 1，工况落在泡点以下的单相液相区（汽化率取 0，非求根结果）"
+          }
+        ]
+      },
+      "status": 200
+    },
+    {
+      "name": "get-job-demo-point-0",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/jobs/{{job_demo}}/points/0",
+        "json": null
+      },
+      "capture": {},
+      "response": {
+        "point_index": 0,
+        "label": "two-phase",
+        "input": {
+          "temperature": 298.15,
+          "pressure": 43.0,
+          "feed": [
+            0.5,
+            0.5
+          ]
+        },
+        "phase": "two_phase",
+        "vapor_fraction": 0.09453061650856398,
+        "liquid_composition": [
+          0.47357800581498644,
+          0.5264219941850199
+        ],
+        "vapor_composition": [
+          0.7530852719356921,
+          0.24691472806424708
+        ],
+        "k_values": [
+          1.5902032245769058,
+          0.46904333555916117
+        ],
+        "saturation_pressures": [
+          68.37873865680695,
+          20.16886342904393
+        ],
+        "bubble_sum": 1.0296232800680334,
+        "dew_sum": 1.3804248035520228,
+        "rr_residual": -6.716849298982197e-14,
+        "rr_iterations": 35,
+        "material_balance_residual": 5.551115123125783e-17,
+        "reason": null
+      },
+      "status": 200
+    },
+    {
+      "name": "get-job-demo-point-4",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/jobs/{{job_demo}}/points/4",
+        "json": null
+      },
+      "capture": {},
+      "response": {
+        "point_index": 4,
+        "label": "rich-light",
+        "input": {
+          "temperature": 283.15,
+          "pressure": 25.0,
+          "feed": [
+            0.7,
+            0.3
+          ]
+        },
+        "phase": "two_phase",
+        "vapor_fraction": 0.589859605559468,
+        "liquid_composition": [
+          0.5372301012716754,
+          0.4627698987283291
+        ],
+        "vapor_composition": [
+          0.8131769489523895,
+          0.1868230510476074
+        ],
+        "k_values": [
+          1.5136474055111977,
+          0.40370614329278715
+        ],
+        "saturation_pressures": [
+          37.841185137779945,
+          10.092653582319679
+        ],
+        "bubble_sum": 1.1806650268456744,
+        "dew_sum": 1.205573864253172,
+        "rr_residual": -7.66053886991358e-15,
+        "rr_iterations": 38,
+        "material_balance_residual": 0.0,
+        "reason": null
+      },
+      "status": 200
+    },
+    {
+      "name": "list-jobs",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/jobs",
+        "json": null
+      },
+      "capture": {},
+      "response": [
+        {
+          "id": "<DYNAMIC_ID>",
+          "status": "completed",
+          "point_count": 2,
+          "property_definition_id": "<DYNAMIC_ID>",
+          "created_at": "<TIMESTAMP>"
+        },
+        {
+          "id": "<DYNAMIC_ID>",
+          "status": "completed",
+          "point_count": 2,
+          "property_definition_id": "<DYNAMIC_ID>",
+          "created_at": "<TIMESTAMP>"
+        },
+        {
+          "id": "<DYNAMIC_ID>",
+          "status": "completed",
+          "point_count": 4,
+          "property_definition_id": null,
+          "created_at": "<TIMESTAMP>"
+        },
+        {
+          "id": "<DYNAMIC_ID>",
+          "status": "completed",
+          "point_count": 8,
+          "property_definition_id": "pd-demo-pentane-hexane",
+          "created_at": "<TIMESTAMP>"
+        }
+      ],
+      "status": 200
+    },
+    {
+      "name": "err-feed-sum",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/jobs",
+        "json": {
+          "property_definition_id": "pd-demo-pentane-hexane",
+          "points": [
+            {
+              "temperature": 300.0,
+              "pressure": 50.0,
+              "feed": [
+                0.6,
+                0.6
+              ]
+            }
+          ]
+        }
+      },
+      "capture": {},
+      "response": {
+        "error": {
+          "type": "FEED_SUM_OUT_OF_TOLERANCE",
+          "message": "进料组成之和 1.2 与 1 的偏差超出容差 1e-06",
+          "details": {
+            "point_index": 0,
+            "feed_sum": 1.2,
+            "tolerance": 1e-06
+          }
+        }
+      },
+      "status": 422
+    },
+    {
+      "name": "err-antoine-denominator",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/jobs",
+        "json": {
+          "property_definition_id": "pd-demo-pentane-hexane",
+          "points": [
+            {
+              "temperature": 39.94,
+              "pressure": 50.0,
+              "feed": [
+                0.5,
+                0.5
+              ]
+            }
+          ]
+        }
+      },
+      "capture": {},
+      "response": {
+        "error": {
+          "type": "ANTOINE_DENOMINATOR_ZERO",
+          "message": "Antoine 分母 T + C 为零（T=39.94, C=-39.94）",
+          "details": {
+            "temperature": 39.94,
+            "C": -39.94,
+            "point_index": 0
+          }
+        }
+      },
+      "status": 422
+    },
+    {
+      "name": "err-unknown-definition",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/jobs",
+        "json": {
+          "property_definition_id": "pd_ghost",
+          "points": [
+            {
+              "temperature": 300.0,
+              "pressure": 50.0,
+              "feed": [
+                0.5,
+                0.5
+              ]
+            }
+          ]
+        }
+      },
+      "capture": {},
+      "response": {
+        "error": {
+          "type": "PROPERTY_DEFINITION_NOT_FOUND",
+          "message": "物性定义 'pd_ghost' 不存在",
+          "details": {
+            "property_definition_id": "pd_ghost"
+          }
+        }
+      },
+      "status": 404
+    },
+    {
+      "name": "err-ambiguous-source",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/jobs",
+        "json": {
+          "property_definition_id": "pd-demo-pentane-hexane",
+          "property_definition": {
+            "name": "x",
+            "source": "direct_psat",
+            "components": [
+              {
+                "name": "a",
+                "psat": 10.0
+              },
+              {
+                "name": "b",
+                "psat": 5.0
+              }
+            ]
+          },
+          "points": [
+            {
+              "temperature": 300.0,
+              "pressure": 50.0,
+              "feed": [
+                0.5,
+                0.5
+              ]
+            }
+          ]
+        }
+      },
+      "capture": {},
+      "response": {
+        "error": {
+          "type": "PROPERTY_SOURCE_AMBIGUOUS",
+          "message": "property_definition_id 与 property_definition 只能二选一：要么引用已登记的物性定义，要么临时给出一份",
+          "details": {}
+        }
+      },
+      "status": 422
+    },
+    {
+      "name": "err-invalid-temperature",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/jobs",
+        "json": {
+          "property_definition_id": "pd-demo-pentane-hexane",
+          "points": [
+            {
+              "temperature": -5.0,
+              "pressure": 50.0,
+              "feed": [
+                0.5,
+                0.5
+              ]
+            }
+          ]
+        }
+      },
+      "capture": {},
+      "response": {
+        "error": {
+          "type": "INVALID_TEMPERATURE",
+          "message": "温度必须为正的有限数",
+          "details": {
+            "point_index": 0,
+            "temperature": -5.0
+          }
+        }
+      },
+      "status": 422
+    },
+    {
+      "name": "err-definition-404",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/property-definitions/pd_nope",
+        "json": null
+      },
+      "capture": {},
+      "response": {
+        "error": {
+          "type": "PROPERTY_DEFINITION_NOT_FOUND",
+          "message": "物性定义 'pd_nope' 不存在",
+          "details": {
+            "property_definition_id": "pd_nope"
+          }
+        }
+      },
+      "status": 404
+    },
+    {
+      "name": "err-job-404",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/jobs/job_nope",
+        "json": null
+      },
+      "capture": {},
+      "response": {
+        "error": {
+          "type": "JOB_NOT_FOUND",
+          "message": "作业 'job_nope' 不存在",
+          "details": {
+            "job_id": "job_nope"
+          }
+        }
+      },
+      "status": 404
+    },
+    {
+      "name": "err-bad-definition",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/property-definitions",
+        "json": {
+          "name": "bad",
+          "source": "direct_psat",
+          "components": [
+            {
+              "name": "a",
+              "psat": -1.0
+            },
+            {
+              "name": "b",
+              "psat": 5.0
+            }
+          ]
+        }
+      },
+      "capture": {},
+      "response": {
+        "error": {
+          "type": "INVALID_PSAT",
+          "message": "组分[0] 'a' 直接给定的饱和蒸汽压必须为正有限数",
+          "details": {
+            "component_index": 0,
+            "component": "a",
+            "psat": -1.0
+          }
+        }
+      },
+      "status": 422
+    }
+  ]
+}

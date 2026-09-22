@@ -14,6 +14,9 @@ services:
       # FLASH_RR_FUNCTION_TOLERANCE: "1e-12"
       # FLASH_RR_BRACKET_TOLERANCE: "1e-14"
       # FLASH_RR_MAX_ITERATIONS: "200"
+      # FLASH_NONIDEAL_K_TOLERANCE: "1e-10"
+      # FLASH_NONIDEAL_LN_K_STEP: "1.0"
+      # FLASH_NONIDEAL_MAX_ITERATIONS: "200"
     volumes:
       - flash-data:/data
     restart: unless-stopped

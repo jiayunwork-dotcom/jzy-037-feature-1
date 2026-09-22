@@ -26,6 +26,12 @@ class Settings(BaseSettings):
     rr_bracket_tolerance: float = 1e-14
     rr_max_iterations: int = 200
 
+    # 非理想液相闪蒸（K 逐次代入外层迭代，见 app/nonideal_flash.py）
+    # K 收敛判据：max_i |Δln K_i|；ln K 单步步长上限；外层迭代上限
+    nonideal_k_tolerance: float = 1e-10
+    nonideal_ln_k_step: float = 1.0
+    nonideal_max_iterations: int = 200
+
     # 单个作业允许的最大工况点数（防御性上限）
     max_points_per_job: int = 10_000
 

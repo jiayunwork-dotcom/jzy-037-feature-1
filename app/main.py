@@ -13,7 +13,7 @@ from fastapi.responses import JSONResponse
 from .config import Settings, get_settings
 from .errors import DomainError
 from .routes import jobs, properties
-from .seed import seed_demo_property_definition
+from .seed import seed_all
 from .store import Store
 
 logger = logging.getLogger("flash_service")
@@ -30,16 +30,20 @@ def _json_safe(value: Any) -> Any:
     return value
 
 _API_DESCRIPTION = """\
-二元体系等温闪蒸核算服务（理想溶液 + 理想汽相）。
+二元体系等温闪蒸核算服务（理想汽相；液相可选理想溶液或双参数活度系数模型）。
 
-- 平衡常数：K_i = P_i^sat(T) / P；P_i^sat 由 Antoine（自然对数形
-  ln P^sat = A - B/(T+C)）算出或直接给定，二者共用同一套组分下标。
-- 汽化率：Rachford-Rice 方程在 (0,1) 上**二分法**求根（全服务唯一求解方式），
-  收敛判据 |f(V)| ≤ 1e-12 或 bracket 宽 ≤ 1e-14，迭代上限 200。
-- 单相判定：Σ z_i·K_i ≤ 1 → 泡点以下单相液体；Σ z_i/K_i ≤ 1 → 露点以上单相蒸汽；
-  两判据同时 > 1 才进入两相区求根，绝不硬解假的汽化率。
+- 平衡常数：
+  · 理想液相（默认）：K_i = P_i^sat(T) / P；
+  · 非理想液相（Margules）：K_i = γ_i(x)·P_i^sat(T) / P，
+    γ 由三后缀 Margules 双参数模型按液相组成算出，K 在单相判定与
+    两相区迭代中都随组成更新。
+  P_i^sat 由 Antoine（ln P^sat = A - B/(T+C)）算出或直接给定，共用同一套组分下标。
+- 汽化率：Rachford-Rice 方程二分法求根（K 冻结时严格单调，全服务唯一内层求根器）；
+  非理想路径在其外做 K 逐次代入迭代（max|Δln K| ≤ 1e-10）。
+- 单相判定（K 在正确组成处取值）：Σ z_i·K_i(z) ≤ 1 → 泡点以下单相液体；
+  露点隐式组成处 Σ z_i/K_i(x) ≤ 1 → 露点以上单相蒸汽。
 - 以「核算作业」为核心：提交作业（物性定义引用/临时 + 工况点组）→ 逐点求解落库
-  → 按作业号取回全部结果或单个工况点。
+  → 按作业号取回全部结果或单个工况点；作业存完整物性快照，可追溯所用模型与参数。
 """
 
 
@@ -47,11 +51,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     settings = settings or get_settings()
     store = Store(settings.db_path)
     if settings.demo_seed_enabled:
-        seed_demo_property_definition(store)
+        seed_all(store)
 
     app = FastAPI(
         title="二元等温闪蒸核算服务",
-        version="0.1.0",
+        version="0.2.0",
         description=_API_DESCRIPTION,
     )
     app.state.settings = settings
@@ -106,14 +110,23 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     def root() -> dict:
         return {
             "service": "binary-isothermal-flash",
-            "version": "0.1.0",
-            "model": "理想溶液 + 理想汽相：K_i = P_i^sat(T) / P",
+            "version": "0.2.0",
+            "models": {
+                "ideal": "理想液相：K_i = P_i^sat(T) / P（activity_model 缺省）",
+                "margules": (
+                    "非理想液相：K_i = γ_i(x)·P_i^sat(T) / P；"
+                    "三后缀 Margules 双参数 a12、a21"
+                ),
+            },
             "solver": {
                 "equation": "Rachford-Rice: Σ z_i (K_i - 1) / (1 + V (K_i - 1)) = 0, V ∈ (0, 1)",
-                "method": "bisection（二分法，全服务唯一求解方式，不使用牛顿迭代）",
+                "inner_method": "bisection（二分法，K 冻结时严格单调，不使用牛顿迭代）",
+                "outer_method": "非理想路径：K 逐次代入，ln K 有界步长，判据 max|Δln K|",
                 "function_tolerance": settings.rr_function_tolerance,
                 "bracket_tolerance": settings.rr_bracket_tolerance,
                 "max_iterations": settings.rr_max_iterations,
+                "nonideal_k_tolerance": settings.nonideal_k_tolerance,
+                "nonideal_max_iterations": settings.nonideal_max_iterations,
             },
             "api": {
                 "docs": "/docs",

@@ -69,6 +69,46 @@ class PsatEvaluationFailed(DomainError):
     error_type = "PSAT_EVALUATION_FAILED"
 
 
+# ---------- 液相活度系数模型（非理想液相） ----------
+
+
+class ActivityModelParameterMissing(DomainError):
+    """非理想物性缺活度系数模型参数（a12/a21）。"""
+
+    error_type = "ACTIVITY_MODEL_PARAMETER_MISSING"
+
+
+class ActivityModelParameterInvalid(DomainError):
+    """活度系数模型参数非有限，或在任意液相组成下算不出正有限活度系数。"""
+
+    error_type = "ACTIVITY_MODEL_PARAMETER_INVALID"
+
+
+class ActivityCoefficientInvalid(DomainError):
+    """求解过程中在当前液相组成处算出非正/非有限的活度系数（防御性）。"""
+
+    error_type = "ACTIVITY_COEFFICIENT_INVALID"
+
+
+class ActivityCompositionOutOfDomain(DomainError):
+    """送入活度系数模型的液相组成不在模型适用域 [0,1] 内。"""
+
+    error_type = "ACTIVITY_COMPOSITION_OUT_OF_DOMAIN"
+
+
+class ActivityModelAlreadyPresent(DomainError):
+    """目标登记项已经带活度系数模型（非理想登记项不允许覆盖升级）。"""
+
+    status_code = 409
+    error_type = "ACTIVITY_MODEL_ALREADY_PRESENT"
+
+
+class NonIdealFlashNonConvergence(DomainError):
+    """K 逐次代入外层迭代达到上限仍未满足平衡常数收敛容差。"""
+
+    error_type = "NONIDEAL_FLASH_NON_CONVERGENCE"
+
+
 # ---------- 作业提交 ----------
 
 
