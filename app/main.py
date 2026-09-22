@@ -13,7 +13,10 @@ from fastapi.responses import JSONResponse
 from .config import Settings, get_settings
 from .errors import DomainError
 from .routes import jobs, properties
-from .seed import seed_demo_property_definition
+from .seed import (
+    seed_demo_nonideal_property_definition,
+    seed_demo_property_definition,
+)
 from .store import Store
 
 logger = logging.getLogger("flash_service")
@@ -30,16 +33,17 @@ def _json_safe(value: Any) -> Any:
     return value
 
 _API_DESCRIPTION = """\
-二元体系等温闪蒸核算服务（理想溶液 + 理想汽相）。
+二元体系等温闪蒸核算服务（理想汽相；液相支持理想溶液与 van Laar 非理想模型）。
 
-- 平衡常数：K_i = P_i^sat(T) / P；P_i^sat 由 Antoine（自然对数形
-  ln P^sat = A - B/(T+C)）算出或直接给定，二者共用同一套组分下标。
-- 汽化率：Rachford-Rice 方程在 (0,1) 上**二分法**求根（全服务唯一求解方式），
-  收敛判据 |f(V)| ≤ 1e-12 或 bracket 宽 ≤ 1e-14，迭代上限 200。
-- 单相判定：Σ z_i·K_i ≤ 1 → 泡点以下单相液体；Σ z_i/K_i ≤ 1 → 露点以上单相蒸汽；
-  两判据同时 > 1 才进入两相区求根，绝不硬解假的汽化率。
+- 理想液相（默认，历史行为不变）：K_i = P_i^sat(T) / P。
+- 非理想液相（liquid_model=van_laar）：K_i = γ_i(x)·P_i^sat(T) / P，
+  lnγ 由双参数 van Laar 模型按当前液相组成求值；单相判定改为泡点压力
+  （闭式 P_b=ΣzγPsat）与露点压力（一维极大化 P_d）检验，两相区以
+  泡点函数 B(x1)=P 二分 + 杠杆规则求汽化率。
+- P_i^sat 由 Antoine（自然对数形 ln P^sat = A - B/(T+C)）算出或直接给定。
 - 以「核算作业」为核心：提交作业（物性定义引用/临时 + 工况点组）→ 逐点求解落库
-  → 按作业号取回全部结果或单个工况点。
+  → 按作业号取回全部结果或单个工况点；作业保存当次物性快照，登记项升级
+  不影响历史作业。
 """
 
 
@@ -48,6 +52,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     store = Store(settings.db_path)
     if settings.demo_seed_enabled:
         seed_demo_property_definition(store)
+        seed_demo_nonideal_property_definition(store)
 
     app = FastAPI(
         title="二元等温闪蒸核算服务",
@@ -106,14 +111,16 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     def root() -> dict:
         return {
             "service": "binary-isothermal-flash",
-            "version": "0.1.0",
-            "model": "理想溶液 + 理想汽相：K_i = P_i^sat(T) / P",
+            "version": "0.2.0",
+            "models": {
+                "ideal": "K_i = P_i^sat(T) / P（默认，历史行为）",
+                "van_laar": "K_i = gamma_i(x)·P_i^sat(T) / P，二元双参数 A12、A21",
+            },
             "solver": {
-                "equation": "Rachford-Rice: Σ z_i (K_i - 1) / (1 + V (K_i - 1)) = 0, V ∈ (0, 1)",
-                "method": "bisection（二分法，全服务唯一求解方式，不使用牛顿迭代）",
-                "function_tolerance": settings.rr_function_tolerance,
-                "bracket_tolerance": settings.rr_bracket_tolerance,
-                "max_iterations": settings.rr_max_iterations,
+                "ideal": "Rachford-Rice: Σ z_i (K_i - 1) / (1 + V (K_i - 1)) = 0, V ∈ (0, 1)，二分法",
+                "van_laar": (
+                    "泡点/露点压力单相判定；两相区 B(x1)=P 二分 + 杠杆规则求 V"
+                ),
             },
             "api": {
                 "docs": "/docs",

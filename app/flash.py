@@ -50,6 +50,10 @@ class FlashResult:
     rr_residual: float | None
     rr_iterations: int | None
     reason: str | None
+    # 非理想路径专属（理想路径恒为 None，保持历史结果逐项不变）：
+    activity_coefficients: list[float] | None = None
+    nonideal_residual: float | None = None
+    nonideal_iterations: int | None = None
 
 
 def rachford_rice_residual(vapor_fraction: float, z: list[float], k: list[float]) -> float:

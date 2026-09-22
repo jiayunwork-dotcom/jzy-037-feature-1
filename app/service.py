@@ -12,10 +12,13 @@ import math
 from typing import Any
 
 from . import antoine
+from .activity import LIQUID_MODEL_IDEAL, LIQUID_MODEL_VAN_LAAR, VanLaarModel
 from .config import Settings
 from .errors import (
-    AntoineCoefficientInvalid,
+    ActivityModelMissing,
+    ActivityModelParameterInvalid,
     AntoineCoefficientMissing,
+    AntoineCoefficientInvalid,
     ComponentCountMismatch,
     DomainError,
     FeedSumOutOfTolerance,
@@ -26,12 +29,19 @@ from .errors import (
     JobNotFound,
     PointNotFound,
     PropertyDefinitionNotFound,
+    PropertyDefinitionUpgradeConflict,
     PropertySourceAmbiguous,
     PropertySourceMissing,
     TooManyPoints,
 )
 from .flash import PHASE_TWO_PHASE, isothermal_flash
-from .schemas import JobCreate, OperatingPointIn, PropertyDefinitionCreate
+from .nonideal_flash import isothermal_flash_nonideal
+from .schemas import (
+    JobCreate,
+    OperatingPointIn,
+    PropertyDefinitionCreate,
+    PropertyDefinitionUpgrade,
+)
 from .store import Store, new_job_id
 
 N_COMPONENTS = 2  # 本服务范围限定二元体系
@@ -82,6 +92,35 @@ def validate_property_definition_payload(payload: PropertyDefinitionCreate) -> N
                         "psat": psat,
                     },
                 )
+    # 液相模型与活度系数参数必须自洽。理想分支字段缺席或显式为 null 都接受，
+    # 使历史请求体（不含这两个字段）行为完全不变。
+    if payload.liquid_model == LIQUID_MODEL_VAN_LAAR:
+        if payload.activity_model is None:
+            raise ActivityModelMissing(
+                "liquid_model=van_laar 时必须给出 activity_model（含 A12、A21）",
+                {"liquid_model": payload.liquid_model},
+            )
+        # VanLaarModel 构造器即参数领域校验（正有限数），缺省值不做静默补全
+        VanLaarModel(
+            payload.activity_model.A12, payload.activity_model.A21
+        )
+    elif payload.activity_model is not None:
+        raise ActivityModelParameterInvalid(
+            "liquid_model=ideal 时不允许携带 activity_model；"
+            "如需非理想液相，请将 liquid_model 置为 van_laar",
+            {"liquid_model": payload.liquid_model,
+             "activity_model": payload.activity_model.model_dump()},
+        )
+
+
+def build_activity_model(prop: PropertyDefinitionCreate) -> VanLaarModel:
+    """从物性定义构造不可变 van Laar 模型；调用前应已通过登记/快照校验。"""
+    if prop.liquid_model != LIQUID_MODEL_VAN_LAAR or prop.activity_model is None:
+        raise ActivityModelMissing(
+            "该物性定义不是 van_laar 非理想定义",
+            {"liquid_model": prop.liquid_model},
+        )
+    return VanLaarModel(prop.activity_model.A12, prop.activity_model.A21)
 
 
 # ---------- 工况点校验 ----------
@@ -138,12 +177,70 @@ def solve_point(
 ) -> dict[str, Any]:
     validate_operating_point(point, point_index, settings.feed_sum_tolerance)
     try:
-        # K 值与饱和蒸汽压同源同序（app/antoine.py 是唯一入口）
-        k_vals = antoine.k_values(prop, point.temperature, point.pressure)
         psat = antoine.saturation_pressures(prop, point.temperature)
     except DomainError as exc:
         exc.details.setdefault("point_index", point_index)
         raise
+
+    if prop.liquid_model == LIQUID_MODEL_VAN_LAAR:
+        model = build_activity_model(prop)
+        try:
+            result = isothermal_flash_nonideal(
+                list(point.feed),
+                psat,
+                point.pressure,
+                model,
+                x_tol=settings.nonideal_x_tolerance,
+                f_tol=settings.nonideal_f_tolerance,
+                max_iter=settings.rr_max_iterations,
+                scan_intervals=settings.nonideal_scan_intervals,
+            )
+        except DomainError as exc:
+            exc.details.setdefault("point_index", point_index)
+            raise
+        v = result.vapor_fraction
+        if result.phase == PHASE_TWO_PHASE:
+            assert result.liquid_composition is not None
+            assert result.vapor_composition is not None
+            material_balance_residual = max(
+                abs(
+                    point.feed[i]
+                    - ((1.0 - v) * result.liquid_composition[i] + v * result.vapor_composition[i])
+                )
+                for i in range(N_COMPONENTS)
+            )
+        else:
+            material_balance_residual = 0.0
+        activity_snapshot = prop.activity_model.model_dump() if prop.activity_model else None
+        return {
+            "point_index": point_index,
+            "label": point.label,
+            "input": {
+                "temperature": point.temperature,
+                "pressure": point.pressure,
+                "feed": list(point.feed),
+            },
+            "phase": result.phase,
+            "vapor_fraction": v,
+            "liquid_composition": result.liquid_composition,
+            "vapor_composition": result.vapor_composition,
+            "k_values": result.k_values,
+            "saturation_pressures": psat,
+            "liquid_model": LIQUID_MODEL_VAN_LAAR,
+            "activity_model": activity_snapshot,
+            "activity_coefficients": result.activity_coefficients,
+            "bubble_sum": result.bubble_sum,
+            "dew_sum": result.dew_sum,
+            "rr_residual": None,
+            "rr_iterations": None,
+            "nonideal_residual": result.nonideal_residual,
+            "nonideal_iterations": result.nonideal_iterations,
+            "material_balance_residual": material_balance_residual,
+            "reason": result.reason,
+        }
+
+    # 理想路径：沿用历史内核与历史字段，逐值不变
+    k_vals = antoine.k_values(prop, point.temperature, point.pressure)
     result = isothermal_flash(
         list(point.feed),
         k_vals,
@@ -179,10 +276,15 @@ def solve_point(
         "vapor_composition": result.vapor_composition,
         "k_values": result.k_values,
         "saturation_pressures": psat,
+        "liquid_model": LIQUID_MODEL_IDEAL,
+        "activity_model": None,
+        "activity_coefficients": None,
         "bubble_sum": result.bubble_sum,
         "dew_sum": result.dew_sum,
         "rr_residual": result.rr_residual,
         "rr_iterations": result.rr_iterations,
+        "nonideal_residual": None,
+        "nonideal_iterations": None,
         "material_balance_residual": material_balance_residual,
         "reason": result.reason,
     }
@@ -231,6 +333,9 @@ def submit_job(store: Store, payload: JobCreate, settings: Settings) -> dict[str
         property_definition_id = None
 
     prop_model = PropertyDefinitionCreate.model_validate(snapshot)
+    # 引用路径同样过一遍领域校验：正常登记项必然通过（写入前已校验），
+    # 这层同时兜底手工写坏的存量库快照。
+    validate_property_definition_payload(prop_model)
     # 逐点求解；任何一点非法都会在此抛出带类型错误，作业整体不落库
     results = [
         solve_point(prop_model, point, index, settings)
@@ -246,6 +351,41 @@ def submit_job(store: Store, payload: JobCreate, settings: Settings) -> dict[str
         points=results,
     )
     return get_job_detail(store, job_id)
+
+
+def upgrade_property_definition(
+    store: Store, definition_id: str, payload: PropertyDefinitionUpgrade
+) -> dict[str, Any]:
+    """把已登记的理想定义追加活度系数参数升级为非理想定义。
+
+    只改登记项本身；历史作业保存的是当次物性快照，升级不会、也无法
+    追溯修改快照内容（store 层不提供任何改写作业的路径）。
+    """
+    existing = store.get_property_definition(definition_id)
+    if existing is None:
+        raise PropertyDefinitionNotFound(
+            f"物性定义 '{definition_id}' 不存在",
+            {"property_definition_id": definition_id},
+        )
+    if existing.get("liquid_model", LIQUID_MODEL_IDEAL) != LIQUID_MODEL_IDEAL:
+        raise PropertyDefinitionUpgradeConflict(
+            f"物性定义 '{definition_id}' 已是非理想定义（"
+            f"{existing.get('liquid_model')}），只允许把理想定义升级一次，"
+            "不支持更换模型参数；如需另一组参数请登记新定义",
+            {
+                "property_definition_id": definition_id,
+                "current_liquid_model": existing.get("liquid_model"),
+            },
+        )
+    # 与登记入口同一套参数领域校验（构造器即校验器）
+    VanLaarModel(payload.activity_model.A12, payload.activity_model.A21)
+    updated = store.upgrade_property_definition(
+        definition_id,
+        payload.liquid_model,
+        payload.activity_model.model_dump(),
+    )
+    assert updated is not None
+    return updated
 
 
 def get_job_detail(store: Store, job_id: str) -> dict[str, Any]:

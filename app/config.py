@@ -26,6 +26,12 @@ class Settings(BaseSettings):
     rr_bracket_tolerance: float = 1e-14
     rr_max_iterations: int = 200
 
+    # 非理想（van Laar）路径：泡点函数二分的组成容差与函数容差，
+    # 以及 [0,1] 上符号扫描的等分数（语义见 app/nonideal_flash.py）
+    nonideal_x_tolerance: float = 1e-12
+    nonideal_f_tolerance: float = 1e-10
+    nonideal_scan_intervals: int = 1024
+
     # 单个作业允许的最大工况点数（防御性上限）
     max_points_per_job: int = 10_000
 

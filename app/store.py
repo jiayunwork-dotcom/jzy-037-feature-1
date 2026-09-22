@@ -25,6 +25,8 @@ CREATE TABLE IF NOT EXISTS property_definitions (
     name              TEXT NOT NULL,
     description       TEXT,
     source            TEXT NOT NULL,
+    liquid_model      TEXT NOT NULL DEFAULT 'ideal',
+    activity_model_json TEXT,
     temperature_unit  TEXT NOT NULL,
     pressure_unit     TEXT NOT NULL,
     components_json   TEXT NOT NULL,
@@ -45,6 +47,21 @@ CREATE TABLE IF NOT EXISTS job_points (
     PRIMARY KEY (job_id, point_index)
 );
 """
+
+# 存量库（旧版本没有液相模型列）的幂等迁移：加列带默认值，
+# 老登记项一律视为理想定义；历史作业快照原样不动。
+_MIGRATIONS = (
+    (
+        "property_definitions",
+        "liquid_model",
+        "ALTER TABLE property_definitions ADD COLUMN liquid_model TEXT NOT NULL DEFAULT 'ideal'",
+    ),
+    (
+        "property_definitions",
+        "activity_model_json",
+        "ALTER TABLE property_definitions ADD COLUMN activity_model_json TEXT",
+    ),
+)
 
 
 def _utcnow() -> str:
@@ -84,6 +101,13 @@ class Store:
         with self._session() as conn:
             conn.execute("PRAGMA journal_mode = WAL")
             conn.executescript(_SCHEMA)
+            existing = {
+                row["name"]
+                for row in conn.execute("PRAGMA table_info(property_definitions)")
+            }
+            for table, column, ddl in _MIGRATIONS:
+                if table == "property_definitions" and column not in existing:
+                    conn.execute(ddl)
 
     # ---------- 物性定义登记项 ----------
 
@@ -95,6 +119,8 @@ class Store:
             "name": payload["name"],
             "description": payload.get("description"),
             "source": payload["source"],
+            "liquid_model": payload.get("liquid_model", "ideal"),
+            "activity_model": payload.get("activity_model"),
             "temperature_unit": payload["temperature_unit"],
             "pressure_unit": payload["pressure_unit"],
             "components": payload["components"],
@@ -104,15 +130,17 @@ class Store:
             conn.execute(
                 """
                 INSERT INTO property_definitions
-                    (id, name, description, source, temperature_unit, pressure_unit,
-                     components_json, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    (id, name, description, source, liquid_model, activity_model_json,
+                     temperature_unit, pressure_unit, components_json, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     record["id"],
                     record["name"],
                     record["description"],
                     record["source"],
+                    record["liquid_model"],
+                    json.dumps(record["activity_model"], ensure_ascii=False),
                     record["temperature_unit"],
                     record["pressure_unit"],
                     json.dumps(record["components"], ensure_ascii=False),
@@ -123,7 +151,8 @@ class Store:
 
     @staticmethod
     def _row_to_property_definition(row: sqlite3.Row) -> dict[str, Any]:
-        return {
+        columns = set(row.keys())
+        record = {
             "id": row["id"],
             "name": row["name"],
             "description": row["description"],
@@ -133,6 +162,17 @@ class Store:
             "components": json.loads(row["components_json"]),
             "created_at": row["created_at"],
         }
+        if "liquid_model" in columns:
+            record["liquid_model"] = row["liquid_model"]
+            raw_activity = row["activity_model_json"]
+            record["activity_model"] = (
+                json.loads(raw_activity) if raw_activity is not None else None
+            )
+        else:
+            # 极端情况下读到迁移前的行：按理想定义呈现
+            record["liquid_model"] = "ideal"
+            record["activity_model"] = None
+        return record
 
     def get_property_definition(self, record_id: str) -> dict[str, Any] | None:
         with self._session() as conn:
@@ -147,6 +187,36 @@ class Store:
                 "SELECT * FROM property_definitions ORDER BY created_at, rowid"
             ).fetchall()
         return [self._row_to_property_definition(row) for row in rows]
+
+    def upgrade_property_definition(
+        self, record_id: str, liquid_model: str, activity_model: dict[str, Any]
+    ) -> dict[str, Any] | None:
+        """给已登记定义追加非理想参数（只改登记项，绝不触碰历史作业快照）。
+
+        不存在返回 None；是否允许升级（当前须为理想定义）由编排层裁决。
+        """
+        with self._session() as conn:
+            row = conn.execute(
+                "SELECT * FROM property_definitions WHERE id = ?", (record_id,)
+            ).fetchone()
+            if row is None:
+                return None
+            conn.execute(
+                """
+                UPDATE property_definitions
+                   SET liquid_model = ?, activity_model_json = ?
+                 WHERE id = ?
+                """,
+                (
+                    liquid_model,
+                    json.dumps(activity_model, ensure_ascii=False),
+                    record_id,
+                ),
+            )
+            row = conn.execute(
+                "SELECT * FROM property_definitions WHERE id = ?", (record_id,)
+            ).fetchone()
+        return self._row_to_property_definition(row)
 
     # ---------- 核算作业 ----------
 

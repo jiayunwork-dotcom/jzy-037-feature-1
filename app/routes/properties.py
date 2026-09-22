@@ -2,15 +2,22 @@
 
 物性定义是可复用的登记项：登记后多个作业可按 id 引用；
 提交作业时也可以临时内联给出（见 jobs 路由），内联定义不进入登记列表。
+
+登记项支持一次「升级」：理想 → van Laar 非理想（PATCH 追加活度系数参数）。
+升级只改登记项，不影响引用它的历史作业（作业保存的是当次物性快照）。
 """
 from __future__ import annotations
 
 from fastapi import APIRouter, Request
 
+from .. import service
 from ..deps import get_store
 from ..errors import PropertyDefinitionNotFound
-from ..schemas import PropertyDefinition, PropertyDefinitionCreate
-from ..service import validate_property_definition_payload
+from ..schemas import (
+    PropertyDefinition,
+    PropertyDefinitionCreate,
+    PropertyDefinitionUpgrade,
+)
 
 router = APIRouter(prefix="/property-definitions", tags=["property-definitions"])
 
@@ -19,9 +26,23 @@ router = APIRouter(prefix="/property-definitions", tags=["property-definitions"]
 def register_property_definition(
     payload: PropertyDefinitionCreate, request: Request
 ) -> dict:
-    """登记一份二元体系物性定义（Antoine 系数或直接给定的饱和蒸汽压）。"""
-    validate_property_definition_payload(payload)
+    """登记一份二元体系物性定义（Antoine 系数或直接给定的饱和蒸汽压）。
+
+    不带 liquid_model 字段即历史行为：理想溶液，K_i = P_i^sat/P；
+    liquid_model="van_laar" 时必须同时给出 activity_model（A12、A21）。
+    """
+    service.validate_property_definition_payload(payload)
     return get_store(request).create_property_definition(payload.model_dump())
+
+
+@router.patch("/{definition_id}", response_model=PropertyDefinition)
+def upgrade_property_definition(
+    definition_id: str, payload: PropertyDefinitionUpgrade, request: Request
+) -> dict:
+    """把已登记的理想物性定义升级为 van Laar 非理想定义（仅允许一次）。"""
+    return service.upgrade_property_definition(
+        get_store(request), definition_id, payload
+    )
 
 
 @router.get("", response_model=list[PropertyDefinition])

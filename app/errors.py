@@ -69,6 +69,30 @@ class PsatEvaluationFailed(DomainError):
     error_type = "PSAT_EVALUATION_FAILED"
 
 
+class ActivityModelMissing(DomainError):
+    error_type = "ACTIVITY_MODEL_MISSING"
+
+
+class ActivityModelParameterInvalid(DomainError):
+    error_type = "ACTIVITY_MODEL_PARAMETER_INVALID"
+
+
+class ActivityModelInputInvalid(DomainError):
+    error_type = "ACTIVITY_MODEL_INPUT_INVALID"
+
+
+class ActivityCoefficientInvalid(DomainError):
+    error_type = "ACTIVITY_COEFFICIENT_INVALID"
+
+
+# ---------- 登记项升级 ----------
+
+
+class PropertyDefinitionUpgradeConflict(DomainError):
+    status_code = 409
+    error_type = "PROPERTY_DEFINITION_UPGRADE_CONFLICT"
+
+
 # ---------- 作业提交 ----------
 
 
